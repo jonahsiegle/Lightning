@@ -34,7 +34,90 @@ export default class Application extends Component {
                 this._receiveKeyup(e);
             });
         }
+
+        this.stage.platform.registerTouchHandler((e) => {
+            this._receiveTouch(e);
+        });        
     }
+
+    _receiveTouch(e){
+        const obj = e;
+        // force a drawFrame to set any missing element dimensions
+        this.stage.drawFrame();
+        this.stage.application.fireTopDownTouchHandler(["_handleClick"], obj);
+    }
+
+    fireTopDownTouchHandler(events, obj){
+        const clientX = obj.clientX;
+        const clientY = obj.clientY;
+
+        let children = this.stage.application.children;
+        // reverse so while loops searches top down
+        let affected = this._findChildren([], children).reverse();
+        let n = affected.length;
+        const withinClickableRange = [];
+
+        // loop through affected children
+        // and perform collision detection
+        while(n--){
+            const child = affected[n];
+            const ctx = child.core.renderContext;
+            const cx = ctx.px;
+            const cy = ctx.py;
+            const cw = child.finalW;
+            const ch = child.finalH;
+
+            // todo: check percission and stage w / h
+            if(cx > 1920 || cy > 1080){
+                continue;
+            }
+
+            if(this._testCollision(clientX, clientY, cx, cy, cw, ch)){
+                withinClickableRange.push(child);
+            }
+        }
+        if (withinClickableRange.length) {
+            withinClickableRange.sort((a,b)=>{
+                return a.id > b.id ? 1: -1;
+            });
+
+            let n = withinClickableRange.length;
+            while(n--){
+                const child = withinClickableRange[n];
+                if(child && child["_handleClick"]){
+                    child._handleClick();
+                    break;
+                }
+            }
+        }
+    }
+
+    _findChildren(bucket, children){
+        let n = children.length;
+        while(n--){
+            const child = children[n];
+            // only add active children
+            if(child.__active){
+                bucket.push(child);
+
+                if(child.hasChildren()){
+                    this._findChildren(bucket, child.children);
+                }
+            }
+        }
+        return bucket;
+    }
+
+    _testCollision(px, py, cx, cy, cw, ch){
+        if (px >= cx &&
+            px <= cx + cw &&
+            py >= cy &&
+            py <= cy + ch) {
+            return true;
+        }
+        return false;
+    }
+
 
     getOption(name) {
         return this.__options[name];

@@ -26,6 +26,22 @@ export default class WebPlatform {
             this._imageWorker.destroy();
         }
         this._removeKeyHandler();
+        this._removeTouchHandler();
+    }
+
+    registerTouchHandler(touchHandler){
+        console.log("register touch handler");
+        this._touchListener = e =>{
+            console.log("mouse down");
+            touchHandler(e);
+        }
+        window.addEventListener('mousedown', this._touchListener);
+    }
+
+    _removeTouchHandler(){
+        if(this._touchListener){
+            window.removeEventListener('mousedown', this._touchListener);
+        }
     }
 
     startLoop() {
